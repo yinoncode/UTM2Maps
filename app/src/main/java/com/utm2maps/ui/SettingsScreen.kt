@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,6 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.utm2maps.data.AppSettings
 import com.utm2maps.data.InterfaceLanguage
+import androidx.compose.ui.unit.dp
+import com.utm2maps.data.AppSettings
 import com.utm2maps.geo.Hemisphere
 
 @Composable
@@ -98,6 +102,45 @@ fun SettingsScreen(
             Text(strings.appName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(strings.createdByFull, style = MaterialTheme.typography.bodyLarge)
         }
+        Text("Settings", style = MaterialTheme.typography.headlineMedium)
+        Text("Latitude Band is saved for display/context. Conversion uses Zone Number and Hemisphere.")
+
+        OutlinedTextField(
+            value = zone,
+            onValueChange = { zone = it.filter(Char::isDigit).take(2) },
+            label = { Text("UTM Zone Number") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+        OutlinedTextField(
+            value = latitudeBand,
+            onValueChange = { latitudeBand = it.uppercase().take(1) },
+            label = { Text("Latitude Band") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+        Text("Hemisphere")
+        Hemisphere.entries.forEach { option ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectable(selected = hemisphere == option, onClick = { hemisphere = option }),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RadioButton(selected = hemisphere == option, onClick = { hemisphere = option })
+                Text(option.name.lowercase().replaceFirstChar { it.uppercase() })
+            }
+        }
+        OutlinedTextField(
+            value = northingPrefix,
+            onValueChange = { northingPrefix = it.filter(Char::isDigit).take(4) },
+            label = { Text("Northing Prefix") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        SettingCheckbox("Auto open Google Maps", autoOpen) { autoOpen = it }
+        SettingCheckbox("Copy link automatically", copyAutomatically) { copyAutomatically = it }
 
         Button(
             onClick = {
@@ -110,6 +153,7 @@ fun SettingsScreen(
                         autoOpenGoogleMaps = autoOpen,
                         copyLinkAutomatically = copyAutomatically,
                         interfaceLanguage = interfaceLanguage
+                        copyLinkAutomatically = copyAutomatically
                     )
                 )
             },
@@ -143,6 +187,8 @@ private fun SingleChoiceRow(text: String, selected: Boolean, onClick: () -> Unit
     ) {
         RadioButton(selected = selected, onClick = onClick)
         Text(text, style = MaterialTheme.typography.bodyLarge)
+        ) { Text("Save") }
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
     }
 }
 
@@ -151,5 +197,8 @@ private fun SettingCheckbox(text: String, checked: Boolean, onCheckedChange: (Bo
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         Checkbox(checked = checked, onCheckedChange = onCheckedChange)
         Text(text, style = MaterialTheme.typography.bodyLarge)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+        Text(text)
     }
 }

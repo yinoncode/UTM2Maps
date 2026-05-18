@@ -10,4 +10,5 @@ data class AppSettings(
     val autoOpenGoogleMaps: Boolean = false,
     val copyLinkAutomatically: Boolean = true,
     val interfaceLanguage: InterfaceLanguage = InterfaceLanguage.HEBREW
+    val copyLinkAutomatically: Boolean = true
 )

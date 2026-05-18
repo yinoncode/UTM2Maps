@@ -56,6 +56,12 @@ fun ResultScreen(
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(strings.ocrText, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                 Text(result?.recognizedText?.ifBlank { "—" } ?: "—", style = MaterialTheme.typography.bodyLarge)
+        Text("Result", style = MaterialTheme.typography.headlineMedium)
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("OCR text", style = MaterialTheme.typography.titleMedium)
+                Text(result?.recognizedText?.ifBlank { "(empty)" } ?: "No result")
             }
         }
 
@@ -118,5 +124,43 @@ fun ResultScreen(
 
         OutlinedButton(onClick = onScanAnother, modifier = Modifier.fillMaxWidth()) { Text(strings.scanAnotherImage) }
         OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(strings.back) }
+            Text("Choose Coordinate", style = MaterialTheme.typography.titleMedium)
+            result.candidates.forEachIndexed { index, item ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onCandidateSelected(index) },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(selected = index == result.selectedIndex, onClick = { onCandidateSelected(index) })
+                    Text(item.rawText)
+                }
+            }
+            HorizontalDivider()
+        }
+
+        if (candidate != null && latLon != null && url != null) {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Selected UTM", style = MaterialTheme.typography.titleMedium)
+                    Text("Raw input: ${candidate.rawText}")
+                    Text("Easting: ${candidate.easting.toLong()}")
+                    Text("Full Northing: ${candidate.fullNorthing.toLong()}")
+                    Text("Zone: ${candidate.zone}${candidate.hemisphere.name.first()}")
+                    Text("Latitude: ${"%.6f".format(latLon.latitude)}")
+                    Text("Longitude: ${"%.6f".format(latLon.longitude)}")
+                    Text("Google Maps: $url")
+                }
+            }
+
+            Button(onClick = { onOpenMaps(url) }, modifier = Modifier.fillMaxWidth()) { Text("Open in Google Maps") }
+            OutlinedButton(onClick = { onCopyLink(url) }, modifier = Modifier.fillMaxWidth()) { Text("Copy Link") }
+            OutlinedButton(onClick = { onShareLink(url) }, modifier = Modifier.fillMaxWidth()) { Text("Share Link") }
+        } else {
+            Text("לא נמצאה קואורדינטת UTM תקינה בתמונה", color = MaterialTheme.colorScheme.error)
+        }
+
+        OutlinedButton(onClick = onScanAnother, modifier = Modifier.fillMaxWidth()) { Text("Scan Another Image") }
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back") }
     }
 }
