@@ -26,11 +26,6 @@ class SettingsRepository(context: Context) {
             autoOpenGoogleMaps = prefs[AUTO_OPEN_MAPS] ?: false,
             copyLinkAutomatically = prefs[COPY_LINK] ?: true,
             interfaceLanguage = enumPreference(prefs[INTERFACE_LANGUAGE], InterfaceLanguage.HEBREW)
-            hemisphere = runCatching { Hemisphere.valueOf(prefs[HEMISPHERE] ?: Hemisphere.NORTH.name) }
-                .getOrDefault(Hemisphere.NORTH),
-            northingPrefix = prefs[NORTHING_PREFIX] ?: "3",
-            autoOpenGoogleMaps = prefs[AUTO_OPEN_MAPS] ?: false,
-            copyLinkAutomatically = prefs[COPY_LINK] ?: true
         )
     }
 
@@ -48,9 +43,6 @@ class SettingsRepository(context: Context) {
 
     private inline fun <reified T : Enum<T>> enumPreference(value: String?, default: T): T =
         runCatching { enumValueOf<T>(value ?: default.name) }.getOrDefault(default)
-
-        }
-    }
 
     private companion object {
         val ZONE_NUMBER = intPreferencesKey("zone_number")

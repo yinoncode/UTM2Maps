@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,9 +17,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -52,39 +47,51 @@ fun MainScreen(
         verticalArrangement = Arrangement.spacedBy(18.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        HeaderCard(strings)
+        HeaderCard(strings = strings)
 
-        Button(onClick = onChooseImage, modifier = Modifier.fillMaxWidth().height(54.dp), enabled = !isScanning) {
+        Button(
+            onClick = onChooseImage,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(54.dp),
+            enabled = !isScanning
+        ) {
             Text(strings.chooseImage, style = MaterialTheme.typography.titleMedium)
         }
-        OutlinedButton(onClick = onTakeImage, modifier = Modifier.fillMaxWidth().height(54.dp), enabled = !isScanning) {
+
+        OutlinedButton(
+            onClick = onTakeImage,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(54.dp),
+            enabled = !isScanning
+        ) {
             Text(strings.takeImage, style = MaterialTheme.typography.titleMedium)
         }
-        OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth().height(54.dp)) {
+
+        OutlinedButton(
+            onClick = onOpenSettings,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(54.dp)
+        ) {
             Text(strings.settings, style = MaterialTheme.typography.titleMedium)
         }
 
         if (isScanning) {
-            ElevatedCard(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-                Row(
-                    modifier = Modifier.padding(18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(30.dp))
-                    Text(strings.scanningImage, style = MaterialTheme.typography.bodyLarge)
-                }
-            }
+            ScanningCard(strings = strings)
         }
 
-        errorMessage?.let {
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.10f))) {
-                Text(it, modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyLarge)
-            }
+        errorMessage?.let { message ->
+            ErrorCard(message = message)
         }
 
         Spacer(Modifier.height(4.dp))
-        LastResultCard(strings, lastResult, onOpenLastResult)
+        LastResultCard(
+            strings = strings,
+            lastResult = lastResult,
+            onOpenLastResult = onOpenLastResult
+        )
     }
 }
 
@@ -105,67 +112,93 @@ private fun HeaderCard(strings: UiStrings) {
                     .background(MaterialTheme.colorScheme.primary, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Text(strings.logoText, color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+                Text(
+                    text = strings.logoText,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.Bold
+                )
             }
-            Text(strings.appName, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            Text(strings.appTagline, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+            Text(
+                text = strings.appName,
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = strings.appTagline,
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
 
 @Composable
-private fun LastResultCard(strings: UiStrings, lastResult: ScanResult?, onOpenLastResult: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+private fun ScanningCard(strings: UiStrings) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+    ) {
+        Row(
+            modifier = Modifier.padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            CircularProgressIndicator(modifier = Modifier.size(30.dp))
+            Text(strings.scanningImage, style = MaterialTheme.typography.bodyLarge)
+        }
+    }
+}
+
+@Composable
+private fun ErrorCard(message: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.10f))
+    ) {
+        Text(
+            text = message,
+            modifier = Modifier.padding(16.dp),
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyLarge
+        )
+    }
+}
+
+@Composable
+private fun LastResultCard(
+    strings: UiStrings,
+    lastResult: ScanResult?,
+    onOpenLastResult: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(strings.lastResult, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = strings.lastResult,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
             val candidate = lastResult?.selectedCandidate
             val latLon = lastResult?.selectedLatLon
             if (candidate == null || latLon == null) {
-                Text(strings.noScanYet, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = strings.noScanYet,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             } else {
                 Text(candidate.rawText, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "${"%.6f".format(latLon.latitude)}, ${"%.6f".format(latLon.longitude)}",
+                    text = "${"%.6f".format(latLon.latitude)}, ${"%.6f".format(latLon.longitude)}",
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
                 )
-                Button(onClick = onOpenLastResult, modifier = Modifier.fillMaxWidth()) { Text(strings.openResult) }
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("UTM2Maps", style = MaterialTheme.typography.headlineLarge)
-        Text("זהה קואורדינטות UTM מתמונה ופתח בגוגל מפות")
-
-        Button(onClick = onChooseImage, modifier = Modifier.fillMaxWidth(), enabled = !isScanning) {
-            Text("Choose Image")
-        }
-        OutlinedButton(onClick = onTakeImage, modifier = Modifier.fillMaxWidth(), enabled = !isScanning) {
-            Text("Take Screenshot/Image if possible")
-        }
-        OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
-            Text("Settings")
-        }
-
-        if (isScanning) {
-            CircularProgressIndicator()
-            Text("Scanning image with ML Kit OCR...")
-        }
-
-        errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-
-        Spacer(Modifier.height(8.dp))
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Last Result", style = MaterialTheme.typography.titleMedium)
-                val candidate = lastResult?.selectedCandidate
-                val latLon = lastResult?.selectedLatLon
-                if (candidate == null || latLon == null) {
-                    Text("No scan yet")
-                } else {
-                    Text("${candidate.rawText} → ${"%.6f".format(latLon.latitude)}, ${"%.6f".format(latLon.longitude)}")
-                    Button(onClick = onOpenLastResult) { Text("Open Result") }
+                Button(onClick = onOpenLastResult, modifier = Modifier.fillMaxWidth()) {
+                    Text(strings.openResult)
                 }
             }
         }

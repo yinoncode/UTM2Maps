@@ -50,117 +50,168 @@ fun ResultScreen(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(strings.result, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(
+            text = strings.result,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
 
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(strings.ocrText, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                Text(result?.recognizedText?.ifBlank { "—" } ?: "—", style = MaterialTheme.typography.bodyLarge)
-        Text("Result", style = MaterialTheme.typography.headlineMedium)
-
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("OCR text", style = MaterialTheme.typography.titleMedium)
-                Text(result?.recognizedText?.ifBlank { "(empty)" } ?: "No result")
-            }
-        }
+        OcrTextCard(strings = strings, text = result?.recognizedText.orEmpty())
 
         if (result != null && result.candidates.size > 1) {
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(strings.chooseCoordinate, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                    result.candidates.forEachIndexed { index, item ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onCandidateSelected(index) }
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(selected = index == result.selectedIndex, onClick = { onCandidateSelected(index) })
-                            Text(item.rawText, style = MaterialTheme.typography.bodyLarge)
-                        }
-                    }
-                }
-            }
+            CandidatePickerCard(
+                strings = strings,
+                result = result,
+                onCandidateSelected = onCandidateSelected
+            )
         }
 
         if (candidate != null && latLon != null && url != null) {
-            ElevatedCard(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-            ) {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(strings.selectedUtm, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                    Text("${strings.latitude}: ${"%.6f".format(latLon.latitude)}", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                    Text("${strings.longitude}: ${"%.6f".format(latLon.longitude)}", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                }
-            }
+            LatLonCard(strings = strings, latitude = latLon.latitude, longitude = latLon.longitude)
+            UtmDetailsCard(strings = strings, rawText = candidate.rawText, easting = candidate.easting.toLong(), fullNorthing = candidate.fullNorthing.toLong(), zoneText = "${candidate.zone}${candidate.hemisphere.name.first()}")
+            MapsLinkCard(strings = strings, url = url)
 
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(strings.selectedUtm, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text("${strings.rawInput}: ${candidate.rawText}")
-                    Text("${strings.easting}: ${candidate.easting.toLong()}")
-                    Text("${strings.fullNorthing}: ${candidate.fullNorthing.toLong()}")
-                    Text("${strings.zone}: ${candidate.zone}${candidate.hemisphere.name.first()}")
-                }
+            Button(onClick = { onOpenMaps(url) }, modifier = Modifier.fillMaxWidth()) {
+                Text(strings.openInGoogleMaps)
             }
-
-            Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(strings.googleMapsLink, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text(url, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-                }
+            OutlinedButton(onClick = { onCopyLink(url) }, modifier = Modifier.fillMaxWidth()) {
+                Text(strings.copyLink)
             }
-
-            Button(onClick = { onOpenMaps(url) }, modifier = Modifier.fillMaxWidth()) { Text(strings.openInGoogleMaps) }
-            OutlinedButton(onClick = { onCopyLink(url) }, modifier = Modifier.fillMaxWidth()) { Text(strings.copyLink) }
-            OutlinedButton(onClick = { onShareLink(url) }, modifier = Modifier.fillMaxWidth()) { Text(strings.shareLink) }
+            OutlinedButton(onClick = { onShareLink(url) }, modifier = Modifier.fillMaxWidth()) {
+                Text(strings.shareLink)
+            }
             HorizontalDivider()
         } else {
-            Text(strings.noValidCoordinateFound, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = strings.noValidCoordinateFound,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyLarge
+            )
         }
 
-        OutlinedButton(onClick = onScanAnother, modifier = Modifier.fillMaxWidth()) { Text(strings.scanAnotherImage) }
-        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(strings.back) }
-            Text("Choose Coordinate", style = MaterialTheme.typography.titleMedium)
+        OutlinedButton(onClick = onScanAnother, modifier = Modifier.fillMaxWidth()) {
+            Text(strings.scanAnotherImage)
+        }
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+            Text(strings.back)
+        }
+    }
+}
+
+@Composable
+private fun OcrTextCard(strings: UiStrings, text: String) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = strings.ocrText,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(text.ifBlank { "—" }, style = MaterialTheme.typography.bodyLarge)
+        }
+    }
+}
+
+@Composable
+private fun CandidatePickerCard(
+    strings: UiStrings,
+    result: ScanResult,
+    onCandidateSelected: (Int) -> Unit
+) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = strings.chooseCoordinate,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
             result.candidates.forEachIndexed { index, item ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onCandidateSelected(index) },
+                        .clickable { onCandidateSelected(index) }
+                        .padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = index == result.selectedIndex, onClick = { onCandidateSelected(index) })
-                    Text(item.rawText)
+                    RadioButton(
+                        selected = index == result.selectedIndex,
+                        onClick = { onCandidateSelected(index) }
+                    )
+                    Text(item.rawText, style = MaterialTheme.typography.bodyLarge)
                 }
             }
-            HorizontalDivider()
         }
+    }
+}
 
-        if (candidate != null && latLon != null && url != null) {
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Selected UTM", style = MaterialTheme.typography.titleMedium)
-                    Text("Raw input: ${candidate.rawText}")
-                    Text("Easting: ${candidate.easting.toLong()}")
-                    Text("Full Northing: ${candidate.fullNorthing.toLong()}")
-                    Text("Zone: ${candidate.zone}${candidate.hemisphere.name.first()}")
-                    Text("Latitude: ${"%.6f".format(latLon.latitude)}")
-                    Text("Longitude: ${"%.6f".format(latLon.longitude)}")
-                    Text("Google Maps: $url")
-                }
-            }
-
-            Button(onClick = { onOpenMaps(url) }, modifier = Modifier.fillMaxWidth()) { Text("Open in Google Maps") }
-            OutlinedButton(onClick = { onCopyLink(url) }, modifier = Modifier.fillMaxWidth()) { Text("Copy Link") }
-            OutlinedButton(onClick = { onShareLink(url) }, modifier = Modifier.fillMaxWidth()) { Text("Share Link") }
-        } else {
-            Text("לא נמצאה קואורדינטת UTM תקינה בתמונה", color = MaterialTheme.colorScheme.error)
+@Composable
+private fun LatLonCard(strings: UiStrings, latitude: Double, longitude: Double) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+    ) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = strings.selectedUtm,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "${strings.latitude}: ${"%.6f".format(latitude)}",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "${strings.longitude}: ${"%.6f".format(longitude)}",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
         }
+    }
+}
 
-        OutlinedButton(onClick = onScanAnother, modifier = Modifier.fillMaxWidth()) { Text("Scan Another Image") }
-        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back") }
+@Composable
+private fun UtmDetailsCard(
+    strings: UiStrings,
+    rawText: String,
+    easting: Long,
+    fullNorthing: Long,
+    zoneText: String
+) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = strings.selectedUtm,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text("${strings.rawInput}: $rawText")
+            Text("${strings.easting}: $easting")
+            Text("${strings.fullNorthing}: $fullNorthing")
+            Text("${strings.zone}: $zoneText")
+        }
+    }
+}
+
+@Composable
+private fun MapsLinkCard(strings: UiStrings, url: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = strings.googleMapsLink,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = url,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
     }
 }

@@ -17,9 +17,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -29,15 +26,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.utm2maps.data.AppSettings
 import com.utm2maps.data.InterfaceLanguage
-import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
-import com.utm2maps.data.AppSettings
 import com.utm2maps.data.SettingsRepository
 import com.utm2maps.geo.LatLon
 import com.utm2maps.geo.UtmCandidate
@@ -62,7 +57,11 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Screen { MAIN, RESULT, SETTINGS }
+private enum class Screen {
+    MAIN,
+    RESULT,
+    SETTINGS
+}
 
 data class ScanResult(
     val recognizedText: String,
@@ -70,47 +69,45 @@ data class ScanResult(
     val selectedIndex: Int = 0
 ) {
     val selectedCandidate: UtmCandidate? = candidates.getOrNull(selectedIndex)
-    val selectedLatLon: LatLon? = selectedCandidate?.let {
-        UtmConverter.toLatLon(it.easting, it.fullNorthing, it.zone, it.hemisphere)
+    val selectedLatLon: LatLon? = selectedCandidate?.let { candidate ->
+        UtmConverter.toLatLon(
+            easting = candidate.easting,
+            northing = candidate.fullNorthing,
+            zone = candidate.zone,
+            hemisphere = candidate.hemisphere
+        )
     }
     val selectedMapsUrl: String? = selectedLatLon?.let(::buildGoogleMapsUrl)
 }
 
 @Composable
 private fun Utm2MapsApp() {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repository = remember { SettingsRepository(context) }
     val settings by repository.settings.collectAsState(initial = AppSettings())
     val strings = stringsFor(settings.interfaceLanguage)
-    val layoutDirection = if (settings.interfaceLanguage == InterfaceLanguage.HEBREW) LayoutDirection.Rtl else LayoutDirection.Ltr
+    val layoutDirection = when (settings.interfaceLanguage) {
+        InterfaceLanguage.HEBREW -> LayoutDirection.Rtl
+        InterfaceLanguage.ENGLISH -> LayoutDirection.Ltr
+    }
     val ocrService = remember { TextRecognitionService(context) }
 
     var showSplash by rememberSaveable { mutableStateOf(true) }
-    val ocrService = remember { TextRecognitionService(context) }
-
     var screen by rememberSaveable { mutableStateOf(Screen.MAIN) }
     var isScanning by rememberSaveable { mutableStateOf(false) }
     var errorMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var scanResult by remember { mutableStateOf<ScanResult?>(null) }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
 
-    LaunchedEffect(Unit) {
-        delay(2_000)
-        showSplash = false
-    }
-
     fun openMaps(url: String) {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-        context.startActivity(intent)
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     }
 
     fun copyLink(url: String) {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText(strings.googleMapsLink, url))
         Toast.makeText(context, strings.linkCopied, Toast.LENGTH_SHORT).show()
-        clipboard.setPrimaryClip(ClipData.newPlainText("UTM2Maps link", url))
-        Toast.makeText(context, "Link copied", Toast.LENGTH_SHORT).show()
     }
 
     fun scanImage(uri: Uri) {
@@ -127,16 +124,25 @@ private fun Utm2MapsApp() {
                     )
                     if (candidates.isEmpty()) {
                         errorMessage = strings.noValidCoordinateFound
-                        errorMessage = "לא נמצאה קואורדינטת UTM תקינה בתמונה"
                     } else {
-                        scanResult = ScanResult(text, candidates)
+                        scanResult = ScanResult(recognizedText = text, candidates = candidates)
                         screen = Screen.RESULT
                     }
                 }
                 .onFailure { error -> errorMessage = error.localizedMessage ?: strings.ocrFailed }
-                .onFailure { error -> errorMessage = error.localizedMessage ?: "OCR failed" }
             isScanning = false
         }
+    }
+
+    LaunchedEffect(Unit) {
+        delay(2_000)
+        showSplash = false
+    }
+
+    LaunchedEffect(scanResult?.selectedMapsUrl, settings.copyLinkAutomatically, settings.autoOpenGoogleMaps) {
+        val url = scanResult?.selectedMapsUrl ?: return@LaunchedEffect
+        if (settings.copyLinkAutomatically) copyLink(url)
+        if (settings.autoOpenGoogleMaps) openMaps(url)
     }
 
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -153,14 +159,7 @@ private fun Utm2MapsApp() {
             cameraLauncher.launch(uri)
         } else {
             errorMessage = strings.cameraPermissionDenied
-            errorMessage = "Camera permission denied"
         }
-    }
-
-    LaunchedEffect(scanResult?.selectedMapsUrl, settings.copyLinkAutomatically, settings.autoOpenGoogleMaps) {
-        val url = scanResult?.selectedMapsUrl ?: return@LaunchedEffect
-        if (settings.copyLinkAutomatically) copyLink(url)
-        if (settings.autoOpenGoogleMaps) openMaps(url)
     }
 
     CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
@@ -188,16 +187,18 @@ private fun Utm2MapsApp() {
                             onOpenSettings = { screen = Screen.SETTINGS },
                             onOpenLastResult = { if (scanResult != null) screen = Screen.RESULT }
                         )
+
                         Screen.RESULT -> ResultScreen(
                             strings = strings,
                             result = scanResult,
                             onCandidateSelected = { index -> scanResult = scanResult?.copy(selectedIndex = index) },
-                            onOpenMaps = { url -> openMaps(url) },
-                            onCopyLink = { url -> copyLink(url) },
+                            onOpenMaps = ::openMaps,
+                            onCopyLink = ::copyLink,
                             onShareLink = { url -> shareLink(context, url, strings.shareChooserTitle) },
                             onScanAnother = { screen = Screen.MAIN },
                             onBack = { screen = Screen.MAIN }
                         )
+
                         Screen.SETTINGS -> SettingsScreen(
                             strings = strings,
                             settings = settings,
@@ -209,43 +210,6 @@ private fun Utm2MapsApp() {
                         )
                     }
                 }
-    MaterialTheme {
-        Surface(modifier = Modifier.fillMaxSize()) {
-            when (screen) {
-                Screen.MAIN -> MainScreen(
-                    lastResult = scanResult,
-                    isScanning = isScanning,
-                    errorMessage = errorMessage,
-                    onChooseImage = { imagePicker.launch("image/*") },
-                    onTakeImage = {
-                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                            val uri = createCameraUri(context)
-                            pendingCameraUri = uri
-                            cameraLauncher.launch(uri)
-                        } else {
-                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                        }
-                    },
-                    onOpenSettings = { screen = Screen.SETTINGS },
-                    onOpenLastResult = { if (scanResult != null) screen = Screen.RESULT }
-                )
-                Screen.RESULT -> ResultScreen(
-                    result = scanResult,
-                    onCandidateSelected = { index -> scanResult = scanResult?.copy(selectedIndex = index) },
-                    onOpenMaps = { url -> openMaps(url) },
-                    onCopyLink = { url -> copyLink(url) },
-                    onShareLink = { url -> shareLink(context, url) },
-                    onScanAnother = { screen = Screen.MAIN },
-                    onBack = { screen = Screen.MAIN }
-                )
-                Screen.SETTINGS -> SettingsScreen(
-                    settings = settings,
-                    onSave = { newSettings ->
-                        scope.launch { repository.save(newSettings) }
-                        screen = Screen.MAIN
-                    },
-                    onBack = { screen = Screen.MAIN }
-                )
             }
         }
     }
@@ -258,11 +222,9 @@ private fun createCameraUri(context: Context): Uri {
 }
 
 private fun shareLink(context: Context, url: String, chooserTitle: String) {
-private fun shareLink(context: Context, url: String) {
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_TEXT, url)
     }
     context.startActivity(Intent.createChooser(intent, chooserTitle))
-    context.startActivity(Intent.createChooser(intent, "Share Google Maps link"))
 }

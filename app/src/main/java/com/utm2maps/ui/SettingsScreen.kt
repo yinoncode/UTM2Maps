@@ -4,8 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,8 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.utm2maps.data.AppSettings
 import com.utm2maps.data.InterfaceLanguage
-import androidx.compose.ui.unit.dp
-import com.utm2maps.data.AppSettings
 import com.utm2maps.geo.Hemisphere
 
 @Composable
@@ -60,10 +56,18 @@ fun SettingsScreen(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(strings.settings, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(
+            text = strings.settings,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
 
         SettingsGroup(title = strings.utmSettings) {
-            Text(strings.conversionHint, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = strings.conversionHint,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             OutlinedTextField(
                 value = zone,
                 onValueChange = { zone = it.filter(Char::isDigit).take(2) },
@@ -78,9 +82,17 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-            Text(strings.hemisphere, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-            SingleChoiceRow(strings.north, hemisphere == Hemisphere.NORTH) { hemisphere = Hemisphere.NORTH }
-            SingleChoiceRow(strings.south, hemisphere == Hemisphere.SOUTH) { hemisphere = Hemisphere.SOUTH }
+            Text(
+                text = strings.hemisphere,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium
+            )
+            SingleChoiceRow(strings.north, hemisphere == Hemisphere.NORTH) {
+                hemisphere = Hemisphere.NORTH
+            }
+            SingleChoiceRow(strings.south, hemisphere == Hemisphere.SOUTH) {
+                hemisphere = Hemisphere.SOUTH
+            }
             OutlinedTextField(
                 value = northingPrefix,
                 onValueChange = { northingPrefix = it.filter(Char::isDigit).take(4) },
@@ -91,56 +103,29 @@ fun SettingsScreen(
         }
 
         SettingsGroup(title = strings.appSettings) {
-            Text(strings.interfaceLanguage, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-            SingleChoiceRow(strings.hebrew, interfaceLanguage == InterfaceLanguage.HEBREW) { interfaceLanguage = InterfaceLanguage.HEBREW }
-            SingleChoiceRow(strings.english, interfaceLanguage == InterfaceLanguage.ENGLISH) { interfaceLanguage = InterfaceLanguage.ENGLISH }
+            Text(
+                text = strings.interfaceLanguage,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium
+            )
+            SingleChoiceRow(strings.hebrew, interfaceLanguage == InterfaceLanguage.HEBREW) {
+                interfaceLanguage = InterfaceLanguage.HEBREW
+            }
+            SingleChoiceRow(strings.english, interfaceLanguage == InterfaceLanguage.ENGLISH) {
+                interfaceLanguage = InterfaceLanguage.ENGLISH
+            }
             SettingCheckbox(strings.autoOpenGoogleMaps, autoOpen) { autoOpen = it }
             SettingCheckbox(strings.copyLinkAutomatically, copyAutomatically) { copyAutomatically = it }
         }
 
         SettingsGroup(title = strings.about) {
-            Text(strings.appName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(
+                text = strings.appName,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
             Text(strings.createdByFull, style = MaterialTheme.typography.bodyLarge)
         }
-        Text("Settings", style = MaterialTheme.typography.headlineMedium)
-        Text("Latitude Band is saved for display/context. Conversion uses Zone Number and Hemisphere.")
-
-        OutlinedTextField(
-            value = zone,
-            onValueChange = { zone = it.filter(Char::isDigit).take(2) },
-            label = { Text("UTM Zone Number") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-        OutlinedTextField(
-            value = latitudeBand,
-            onValueChange = { latitudeBand = it.uppercase().take(1) },
-            label = { Text("Latitude Band") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-        Text("Hemisphere")
-        Hemisphere.entries.forEach { option ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .selectable(selected = hemisphere == option, onClick = { hemisphere = option }),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RadioButton(selected = hemisphere == option, onClick = { hemisphere = option })
-                Text(option.name.lowercase().replaceFirstChar { it.uppercase() })
-            }
-        }
-        OutlinedTextField(
-            value = northingPrefix,
-            onValueChange = { northingPrefix = it.filter(Char::isDigit).take(4) },
-            label = { Text("Northing Prefix") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        SettingCheckbox("Auto open Google Maps", autoOpen) { autoOpen = it }
-        SettingCheckbox("Copy link automatically", copyAutomatically) { copyAutomatically = it }
 
         Button(
             onClick = {
@@ -153,13 +138,17 @@ fun SettingsScreen(
                         autoOpenGoogleMaps = autoOpen,
                         copyLinkAutomatically = copyAutomatically,
                         interfaceLanguage = interfaceLanguage
-                        copyLinkAutomatically = copyAutomatically
                     )
                 )
             },
             modifier = Modifier.fillMaxWidth()
-        ) { Text(strings.save) }
-        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(strings.cancel) }
+        ) {
+            Text(strings.save)
+        }
+
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+            Text(strings.cancel)
+        }
     }
 }
 
@@ -169,8 +158,15 @@ private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> 
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
             content()
         }
     }
@@ -187,18 +183,16 @@ private fun SingleChoiceRow(text: String, selected: Boolean, onClick: () -> Unit
     ) {
         RadioButton(selected = selected, onClick = onClick)
         Text(text, style = MaterialTheme.typography.bodyLarge)
-        ) { Text("Save") }
-        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
     }
 }
 
 @Composable
 private fun SettingCheckbox(text: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Checkbox(checked = checked, onCheckedChange = onCheckedChange)
         Text(text, style = MaterialTheme.typography.bodyLarge)
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
-        Text(text)
     }
 }
