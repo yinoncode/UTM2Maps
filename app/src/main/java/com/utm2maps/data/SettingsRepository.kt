@@ -21,6 +21,11 @@ class SettingsRepository(context: Context) {
         AppSettings(
             zoneNumber = prefs[ZONE_NUMBER] ?: 36,
             latitudeBand = prefs[LATITUDE_BAND] ?: "R",
+            hemisphere = enumPreference(prefs[HEMISPHERE], Hemisphere.NORTH),
+            northingPrefix = prefs[NORTHING_PREFIX] ?: "3",
+            autoOpenGoogleMaps = prefs[AUTO_OPEN_MAPS] ?: false,
+            copyLinkAutomatically = prefs[COPY_LINK] ?: true,
+            interfaceLanguage = enumPreference(prefs[INTERFACE_LANGUAGE], InterfaceLanguage.HEBREW)
             hemisphere = runCatching { Hemisphere.valueOf(prefs[HEMISPHERE] ?: Hemisphere.NORTH.name) }
                 .getOrDefault(Hemisphere.NORTH),
             northingPrefix = prefs[NORTHING_PREFIX] ?: "3",
@@ -37,6 +42,13 @@ class SettingsRepository(context: Context) {
             prefs[NORTHING_PREFIX] = settings.northingPrefix
             prefs[AUTO_OPEN_MAPS] = settings.autoOpenGoogleMaps
             prefs[COPY_LINK] = settings.copyLinkAutomatically
+            prefs[INTERFACE_LANGUAGE] = settings.interfaceLanguage.name
+        }
+    }
+
+    private inline fun <reified T : Enum<T>> enumPreference(value: String?, default: T): T =
+        runCatching { enumValueOf<T>(value ?: default.name) }.getOrDefault(default)
+
         }
     }
 
@@ -47,5 +59,6 @@ class SettingsRepository(context: Context) {
         val NORTHING_PREFIX = stringPreferencesKey("northing_prefix")
         val AUTO_OPEN_MAPS = booleanPreferencesKey("auto_open_maps")
         val COPY_LINK = booleanPreferencesKey("copy_link")
+        val INTERFACE_LANGUAGE = stringPreferencesKey("interface_language")
     }
 }

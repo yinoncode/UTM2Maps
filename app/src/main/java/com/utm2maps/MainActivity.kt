@@ -14,6 +14,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -26,6 +29,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import com.utm2maps.data.AppSettings
+import com.utm2maps.data.InterfaceLanguage
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.utm2maps.data.AppSettings
@@ -39,6 +48,10 @@ import com.utm2maps.parser.UtmParser
 import com.utm2maps.ui.MainScreen
 import com.utm2maps.ui.ResultScreen
 import com.utm2maps.ui.SettingsScreen
+import com.utm2maps.ui.SplashScreen
+import com.utm2maps.ui.Utm2MapsTheme
+import com.utm2maps.ui.stringsFor
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -69,6 +82,11 @@ private fun Utm2MapsApp() {
     val scope = rememberCoroutineScope()
     val repository = remember { SettingsRepository(context) }
     val settings by repository.settings.collectAsState(initial = AppSettings())
+    val strings = stringsFor(settings.interfaceLanguage)
+    val layoutDirection = if (settings.interfaceLanguage == InterfaceLanguage.HEBREW) LayoutDirection.Rtl else LayoutDirection.Ltr
+    val ocrService = remember { TextRecognitionService(context) }
+
+    var showSplash by rememberSaveable { mutableStateOf(true) }
     val ocrService = remember { TextRecognitionService(context) }
 
     var screen by rememberSaveable { mutableStateOf(Screen.MAIN) }
@@ -77,6 +95,11 @@ private fun Utm2MapsApp() {
     var scanResult by remember { mutableStateOf<ScanResult?>(null) }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
 
+    LaunchedEffect(Unit) {
+        delay(2_000)
+        showSplash = false
+    }
+
     fun openMaps(url: String) {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         context.startActivity(intent)
@@ -84,6 +107,8 @@ private fun Utm2MapsApp() {
 
     fun copyLink(url: String) {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText(strings.googleMapsLink, url))
+        Toast.makeText(context, strings.linkCopied, Toast.LENGTH_SHORT).show()
         clipboard.setPrimaryClip(ClipData.newPlainText("UTM2Maps link", url))
         Toast.makeText(context, "Link copied", Toast.LENGTH_SHORT).show()
     }
@@ -101,12 +126,14 @@ private fun Utm2MapsApp() {
                         northingPrefix = settings.northingPrefix
                     )
                     if (candidates.isEmpty()) {
+                        errorMessage = strings.noValidCoordinateFound
                         errorMessage = "לא נמצאה קואורדינטת UTM תקינה בתמונה"
                     } else {
                         scanResult = ScanResult(text, candidates)
                         screen = Screen.RESULT
                     }
                 }
+                .onFailure { error -> errorMessage = error.localizedMessage ?: strings.ocrFailed }
                 .onFailure { error -> errorMessage = error.localizedMessage ?: "OCR failed" }
             isScanning = false
         }
@@ -125,6 +152,7 @@ private fun Utm2MapsApp() {
             pendingCameraUri = uri
             cameraLauncher.launch(uri)
         } else {
+            errorMessage = strings.cameraPermissionDenied
             errorMessage = "Camera permission denied"
         }
     }
@@ -135,6 +163,52 @@ private fun Utm2MapsApp() {
         if (settings.autoOpenGoogleMaps) openMaps(url)
     }
 
+    CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
+        Utm2MapsTheme {
+            Surface(modifier = Modifier.fillMaxSize()) {
+                if (showSplash) {
+                    SplashScreen(strings = strings)
+                } else {
+                    when (screen) {
+                        Screen.MAIN -> MainScreen(
+                            strings = strings,
+                            lastResult = scanResult,
+                            isScanning = isScanning,
+                            errorMessage = errorMessage,
+                            onChooseImage = { imagePicker.launch("image/*") },
+                            onTakeImage = {
+                                if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                                    val uri = createCameraUri(context)
+                                    pendingCameraUri = uri
+                                    cameraLauncher.launch(uri)
+                                } else {
+                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                }
+                            },
+                            onOpenSettings = { screen = Screen.SETTINGS },
+                            onOpenLastResult = { if (scanResult != null) screen = Screen.RESULT }
+                        )
+                        Screen.RESULT -> ResultScreen(
+                            strings = strings,
+                            result = scanResult,
+                            onCandidateSelected = { index -> scanResult = scanResult?.copy(selectedIndex = index) },
+                            onOpenMaps = { url -> openMaps(url) },
+                            onCopyLink = { url -> copyLink(url) },
+                            onShareLink = { url -> shareLink(context, url, strings.shareChooserTitle) },
+                            onScanAnother = { screen = Screen.MAIN },
+                            onBack = { screen = Screen.MAIN }
+                        )
+                        Screen.SETTINGS -> SettingsScreen(
+                            strings = strings,
+                            settings = settings,
+                            onSave = { newSettings ->
+                                scope.launch { repository.save(newSettings) }
+                                screen = Screen.MAIN
+                            },
+                            onBack = { screen = Screen.MAIN }
+                        )
+                    }
+                }
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize()) {
             when (screen) {
@@ -183,10 +257,12 @@ private fun createCameraUri(context: Context): Uri {
     return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", imageFile)
 }
 
+private fun shareLink(context: Context, url: String, chooserTitle: String) {
 private fun shareLink(context: Context, url: String) {
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_TEXT, url)
     }
+    context.startActivity(Intent.createChooser(intent, chooserTitle))
     context.startActivity(Intent.createChooser(intent, "Share Google Maps link"))
 }

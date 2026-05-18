@@ -8,10 +8,18 @@ UTM2Maps is a native Android app written in Kotlin and Jetpack Compose. It reads
 - Latitude Band: `R`
 - Hemisphere: `North`
 - Northing Prefix: `3`
+- Interface Language: `Hebrew`
 - Auto open Google Maps: `false`
 - Copy link automatically: `true`
 
 The latitude band is stored for context. The actual conversion uses zone number and hemisphere, so the default `36R` is converted as UTM Zone `36N`.
+
+
+## Interface languages
+
+The app supports Hebrew and English from the Settings screen. Hebrew is the default and uses RTL layout direction; English uses LTR layout direction. All screen labels, buttons, result messages, copy/share/open actions, Settings groups, the splash screen, and the About section use the selected interface language.
+
+On launch, UTM2Maps shows a short splash/About screen with the app name and creator credit for Yinon Cohen before opening the main scanner screen.
 
 ## Supported OCR coordinate formats
 
