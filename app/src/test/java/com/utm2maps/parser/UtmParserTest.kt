@@ -32,6 +32,68 @@ class UtmParserTest {
     }
 
     @Test
+    fun parsesSlashSeparatedCoordinateInsideHebrewText() {
+        val candidates = UtmParser.parseCandidates("נצ הנחתה 625854/439328", 36, Hemisphere.NORTH, "3")
+
+        assertEquals(1, candidates.size)
+        assertEquals(625854.0, candidates[0].easting)
+        assertEquals("439328", candidates[0].shortNorthing)
+        assertEquals(3_439_328.0, candidates[0].fullNorthing)
+    }
+
+    @Test
+    fun parsesCoordinateWithSpacesAroundSlash() {
+        val candidates = UtmParser.parseCandidates("נ.צ. 625854 / 439328", 36, Hemisphere.NORTH, "3")
+
+        assertEquals(1, candidates.size)
+        assertEquals(625854.0, candidates[0].easting)
+        assertEquals("439328", candidates[0].shortNorthing)
+        assertEquals(3_439_328.0, candidates[0].fullNorthing)
+    }
+
+    @Test
+    fun parsesBackslashAndPipe() {
+        val backslashCandidates = UtmParser.parseCandidates("625854\\439328", 36, Hemisphere.NORTH, "3")
+        val pipeCandidates = UtmParser.parseCandidates("625854 | 439328", 36, Hemisphere.NORTH, "3")
+
+        assertEquals(1, backslashCandidates.size)
+        assertEquals(625854.0, backslashCandidates[0].easting)
+        assertEquals("439328", backslashCandidates[0].shortNorthing)
+        assertEquals(3_439_328.0, backslashCandidates[0].fullNorthing)
+
+        assertEquals(1, pipeCandidates.size)
+        assertEquals(625854.0, pipeCandidates[0].easting)
+        assertEquals("439328", pipeCandidates[0].shortNorthing)
+        assertEquals(3_439_328.0, pipeCandidates[0].fullNorthing)
+    }
+
+    @Test
+    fun parsesAllRequestedSeparatorFormats() {
+        val inputs = listOf(
+            "625854/439328",
+            "625854:439328",
+            "625854 439328",
+            "625854,439328",
+            "625854-439328",
+            "625854\\439328",
+            "625854 | 439328",
+            "625854\n439328",
+            "625854439328",
+            "נקודת ציון: 625854 439328",
+            "UTM 625854/439328",
+            "coords 625854:439328 ok"
+        )
+
+        inputs.forEach { input ->
+            val candidates = UtmParser.parseCandidates(input, 36, Hemisphere.NORTH, "3")
+            assertEquals(1, candidates.size, "Expected one candidate for input: $input")
+            assertEquals(625854.0, candidates[0].easting)
+            assertEquals("439328", candidates[0].shortNorthing)
+            assertEquals(3_439_328.0, candidates[0].fullNorthing)
+        }
+    }
+
+    @Test
     fun buildsFullNorthingByConcatenatingPrefix() {
         assertEquals("3431750", UtmParser.buildFullNorthing("431750", "3"))
     }

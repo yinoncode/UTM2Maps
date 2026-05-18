@@ -4,7 +4,7 @@ import com.utm2maps.geo.Hemisphere
 import com.utm2maps.geo.UtmCandidate
 
 object UtmParser {
-    private val separatedPairRegex = Regex("""(?<!\d)(\d{6})\s*[: ,\-\n\r\t]+\s*(\d{6})(?!\d)""")
+    private val separatedPairRegex = Regex("""(?<!\d)(\d{6})\s*[/\\|:,\-\s]+\s*(\d{6})(?!\d)""")
     private val compactPairRegex = Regex("""(?<!\d)(\d{12})(?!\d)""")
 
     fun parseCandidates(
