@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -31,7 +32,10 @@ import com.utm2maps.geo.buildGoogleMapsUrl
 fun ResultScreen(
     strings: UiStrings,
     result: ScanResult?,
+    errorMessage: String?,
     onCandidateSelected: (Int) -> Unit,
+    onCopyRecognizedText: (String) -> Unit,
+    onReparseRecognizedText: (String) -> Unit,
     onOpenMaps: (String) -> Unit,
     onCopyLink: (String) -> Unit,
     onShareLink: (String) -> Unit,
@@ -56,7 +60,27 @@ fun ResultScreen(
             fontWeight = FontWeight.Bold
         )
 
-        OcrTextCard(strings = strings, text = result?.recognizedText.orEmpty())
+        val recognizedText = result?.recognizedText.orEmpty()
+        OcrTextCard(
+            strings = strings,
+            text = recognizedText,
+            onCopyRecognizedText = onCopyRecognizedText,
+            onReparseRecognizedText = onReparseRecognizedText
+        )
+
+        errorMessage?.let { message ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.10f))
+            ) {
+                Text(
+                    text = message,
+                    modifier = Modifier.padding(16.dp),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        }
 
         if (result != null && result.candidates.size > 1) {
             CandidatePickerCard(
@@ -99,15 +123,43 @@ fun ResultScreen(
 }
 
 @Composable
-private fun OcrTextCard(strings: UiStrings, text: String) {
+private fun OcrTextCard(
+    strings: UiStrings,
+    text: String,
+    onCopyRecognizedText: (String) -> Unit,
+    onReparseRecognizedText: (String) -> Unit
+) {
     Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
                 text = strings.ocrText,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold
             )
-            Text(text.ifBlank { "—" }, style = MaterialTheme.typography.bodyLarge)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 180.dp)
+                    .verticalScroll(rememberScrollState())
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(12.dp)
+            ) {
+                Text(text.ifBlank { "—" }, style = MaterialTheme.typography.bodyLarge)
+            }
+            OutlinedButton(
+                onClick = { onCopyRecognizedText(text) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = text.isNotBlank()
+            ) {
+                Text(strings.copyRecognizedText)
+            }
+            Button(
+                onClick = { onReparseRecognizedText(text) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = text.isNotBlank()
+            ) {
+                Text(strings.extractCoordinateFromThisText)
+            }
         }
     }
 }

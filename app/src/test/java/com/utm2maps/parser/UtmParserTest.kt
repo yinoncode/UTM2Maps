@@ -94,6 +94,23 @@ class UtmParserTest {
     }
 
     @Test
+    fun parsesManualTextExamples() {
+        val inputs = listOf(
+            "נצ הנחתה 625854/439328",
+            "נקודת ציון:\n625854\n439328",
+            "625854439328"
+        )
+
+        inputs.forEach { input ->
+            val candidates = UtmParser.parseCandidates(input, 36, Hemisphere.NORTH, "3")
+            assertEquals(1, candidates.size, "Expected one candidate for manual text: $input")
+            assertEquals(625854.0, candidates[0].easting)
+            assertEquals("439328", candidates[0].shortNorthing)
+            assertEquals(3_439_328.0, candidates[0].fullNorthing)
+        }
+    }
+
+    @Test
     fun buildsFullNorthingByConcatenatingPrefix() {
         assertEquals("3431750", UtmParser.buildFullNorthing("431750", "3"))
     }

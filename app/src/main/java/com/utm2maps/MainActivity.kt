@@ -97,6 +97,8 @@ private fun Utm2MapsApp() {
     var screen by rememberSaveable { mutableStateOf(Screen.MAIN) }
     var isScanning by rememberSaveable { mutableStateOf(false) }
     var errorMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var resultErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var manualText by rememberSaveable { mutableStateOf("") }
     var scanResult by remember { mutableStateOf<ScanResult?>(null) }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -110,10 +112,48 @@ private fun Utm2MapsApp() {
         Toast.makeText(context, strings.linkCopied, Toast.LENGTH_SHORT).show()
     }
 
+    fun copyRecognizedText(text: String) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText(strings.ocrText, text))
+        Toast.makeText(context, strings.recognizedTextCopied, Toast.LENGTH_SHORT).show()
+    }
+
+    fun parseTextInput(text: String, showResultError: Boolean = false) {
+        val trimmedText = text.trim()
+        if (trimmedText.isEmpty()) {
+            if (showResultError) {
+                resultErrorMessage = strings.noValidCoordinateInText
+            } else {
+                errorMessage = strings.noValidCoordinateInText
+            }
+            return
+        }
+
+        val candidates = UtmParser.parseCandidates(
+            text = trimmedText,
+            zone = settings.zoneNumber,
+            hemisphere = settings.hemisphere,
+            northingPrefix = settings.northingPrefix
+        )
+        if (candidates.isEmpty()) {
+            if (showResultError) {
+                resultErrorMessage = strings.noValidCoordinateInText
+            } else {
+                errorMessage = strings.noValidCoordinateInText
+            }
+        } else {
+            errorMessage = null
+            resultErrorMessage = null
+            scanResult = ScanResult(recognizedText = trimmedText, candidates = candidates)
+            screen = Screen.RESULT
+        }
+    }
+
     fun scanImage(uri: Uri) {
         scope.launch {
             isScanning = true
             errorMessage = null
+            resultErrorMessage = null
             runCatching { ocrService.recognize(uri) }
                 .onSuccess { text ->
                     val candidates = UtmParser.parseCandidates(
@@ -126,6 +166,7 @@ private fun Utm2MapsApp() {
                         errorMessage = strings.noValidCoordinateFound
                     } else {
                         scanResult = ScanResult(recognizedText = text, candidates = candidates)
+                        resultErrorMessage = null
                         screen = Screen.RESULT
                     }
                 }
@@ -174,6 +215,9 @@ private fun Utm2MapsApp() {
                             lastResult = scanResult,
                             isScanning = isScanning,
                             errorMessage = errorMessage,
+                            manualText = manualText,
+                            onManualTextChange = { manualText = it },
+                            onExtractManualText = { parseTextInput(manualText) },
                             onChooseImage = { imagePicker.launch("image/*") },
                             onTakeImage = {
                                 if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
@@ -191,7 +235,10 @@ private fun Utm2MapsApp() {
                         Screen.RESULT -> ResultScreen(
                             strings = strings,
                             result = scanResult,
+                            errorMessage = resultErrorMessage,
                             onCandidateSelected = { index -> scanResult = scanResult?.copy(selectedIndex = index) },
+                            onCopyRecognizedText = ::copyRecognizedText,
+                            onReparseRecognizedText = { text -> parseTextInput(text, showResultError = true) },
                             onOpenMaps = ::openMaps,
                             onCopyLink = ::copyLink,
                             onShareLink = { url -> shareLink(context, url, strings.shareChooserTitle) },

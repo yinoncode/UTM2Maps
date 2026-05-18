@@ -21,6 +21,13 @@ The app supports Hebrew and English from the Settings screen. Hebrew is the defa
 
 On launch, UTM2Maps shows a short splash/About screen with the app name and creator credit for Yinon Cohen before opening the main scanner screen.
 
+
+## Manual text extraction
+
+In addition to image OCR, the main screen includes a manual text area. Paste or type free text such as `נצ הנחתה 625854/439328`, `נ.צ. 625854 / 439328`, a multiline coordinate, or a compact 12-digit coordinate, then tap the extract button to open the same result flow used by OCR.
+
+The Result screen also lets you copy the full recognized OCR text or re-run coordinate extraction on that recognized text.
+
 ## Supported OCR coordinate formats
 
 Examples accepted by the parser:

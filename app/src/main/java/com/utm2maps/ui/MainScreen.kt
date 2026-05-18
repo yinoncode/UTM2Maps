@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -19,6 +21,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,6 +37,9 @@ fun MainScreen(
     lastResult: ScanResult?,
     isScanning: Boolean,
     errorMessage: String?,
+    manualText: String,
+    onManualTextChange: (String) -> Unit,
+    onExtractManualText: () -> Unit,
     onChooseImage: () -> Unit,
     onTakeImage: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -43,6 +49,7 @@ fun MainScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -77,6 +84,13 @@ fun MainScreen(
         ) {
             Text(strings.settings, style = MaterialTheme.typography.titleMedium)
         }
+
+        ManualTextCard(
+            strings = strings,
+            manualText = manualText,
+            onManualTextChange = onManualTextChange,
+            onExtractManualText = onExtractManualText
+        )
 
         if (isScanning) {
             ScanningCard(strings = strings)
@@ -129,6 +143,38 @@ private fun HeaderCard(strings: UiStrings) {
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
             )
+        }
+    }
+}
+
+@Composable
+private fun ManualTextCard(
+    strings: UiStrings,
+    manualText: String,
+    onManualTextChange: (String) -> Unit,
+    onExtractManualText: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = strings.manualTextTitle,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            OutlinedTextField(
+                value = manualText,
+                onValueChange = onManualTextChange,
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 4,
+                label = { Text(strings.pasteTextManually) },
+                placeholder = { Text(strings.manualTextPlaceholder) }
+            )
+            Button(onClick = onExtractManualText, modifier = Modifier.fillMaxWidth()) {
+                Text(strings.extractCoordinateFromText)
+            }
         }
     }
 }
