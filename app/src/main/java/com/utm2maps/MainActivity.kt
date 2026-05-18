@@ -112,10 +112,44 @@ private fun Utm2MapsApp() {
         Toast.makeText(context, strings.linkCopied, Toast.LENGTH_SHORT).show()
     }
 
-    fun copyRecognizedText(text: String) {
+    fun copyTextToClipboard(label: String, text: String, toastMessage: String) {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText(strings.ocrText, text))
-        Toast.makeText(context, strings.recognizedTextCopied, Toast.LENGTH_SHORT).show()
+        clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
+        Toast.makeText(context, toastMessage, Toast.LENGTH_SHORT).show()
+    }
+
+    fun copyRecognizedText(text: String) {
+        copyTextToClipboard(strings.ocrText, text, strings.recognizedTextCopied)
+    }
+
+    fun copySelectedText(text: String) {
+        copyTextToClipboard(strings.selectedTextForExtraction, text, strings.selectedTextCopied)
+    }
+
+    fun copyOcrLine(text: String) {
+        copyTextToClipboard(strings.recognizedTextFromImage, text, strings.lineCopied)
+    }
+
+    fun parseSelectedText(text: String) {
+        val trimmedText = text.trim()
+        if (trimmedText.isEmpty()) {
+            resultErrorMessage = strings.noCoordinateInSelectedLine
+            return
+        }
+
+        val candidates = UtmParser.parseCandidates(
+            text = trimmedText,
+            zone = settings.zoneNumber,
+            hemisphere = settings.hemisphere,
+            northingPrefix = settings.northingPrefix
+        )
+        if (candidates.isEmpty()) {
+            resultErrorMessage = strings.noCoordinateInSelectedLine
+        } else {
+            val originalRecognizedText = scanResult?.recognizedText ?: trimmedText
+            scanResult = ScanResult(recognizedText = originalRecognizedText, candidates = candidates)
+            resultErrorMessage = null
+        }
     }
 
     fun parseTextInput(text: String, showResultError: Boolean = false) {
@@ -237,8 +271,10 @@ private fun Utm2MapsApp() {
                             result = scanResult,
                             errorMessage = resultErrorMessage,
                             onCandidateSelected = { index -> scanResult = scanResult?.copy(selectedIndex = index) },
-                            onCopyRecognizedText = ::copyRecognizedText,
-                            onReparseRecognizedText = { text -> parseTextInput(text, showResultError = true) },
+                            onCopyAllText = ::copyRecognizedText,
+                            onCopySelectedText = ::copySelectedText,
+                            onCopyOcrLine = ::copyOcrLine,
+                            onParseSelectedText = ::parseSelectedText,
                             onOpenMaps = ::openMaps,
                             onCopyLink = ::copyLink,
                             onShareLink = { url -> shareLink(context, url, strings.shareChooserTitle) },

@@ -10,6 +10,9 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 class TextRecognitionService(private val context: Context) {
+    // ML Kit's bundled on-device recognizer is kept offline. It may not fully
+    // recognize Hebrew words, but it reliably extracts the digits and common
+    // coordinate separators that UtmParser needs from mixed Hebrew/number text.
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
     suspend fun recognize(uri: Uri): String = suspendCoroutine { continuation ->

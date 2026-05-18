@@ -19,8 +19,13 @@ The latitude band is stored for context. The actual conversion uses zone number 
 
 The app supports Hebrew and English from the Settings screen. Hebrew is the default and uses RTL layout direction; English uses LTR layout direction. All screen labels, buttons, result messages, copy/share/open actions, Settings groups, the splash screen, and the About section use the selected interface language.
 
-On launch, UTM2Maps shows a short splash/About screen with the app name and creator credit for Yinon Cohen before opening the main scanner screen.
+On launch, UTM2Maps shows a short splash/About screen with the app name and creator credit for yinoncode@gmail.com before opening the main scanner screen.
 
+
+
+## OCR notes
+
+UTM2Maps uses ML Kit's bundled on-device text recognizer so scanning remains offline. The local recognizer may not fully recognize Hebrew words around a coordinate, but the parser is designed to extract the important digits and separators from mixed text such as `נצ הנחתה 625854/439328`.
 
 ## Manual text extraction
 

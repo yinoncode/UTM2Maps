@@ -18,9 +18,15 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -34,8 +40,10 @@ fun ResultScreen(
     result: ScanResult?,
     errorMessage: String?,
     onCandidateSelected: (Int) -> Unit,
-    onCopyRecognizedText: (String) -> Unit,
-    onReparseRecognizedText: (String) -> Unit,
+    onCopyAllText: (String) -> Unit,
+    onCopySelectedText: (String) -> Unit,
+    onCopyOcrLine: (String) -> Unit,
+    onParseSelectedText: (String) -> Unit,
     onOpenMaps: (String) -> Unit,
     onCopyLink: (String) -> Unit,
     onShareLink: (String) -> Unit,
@@ -45,6 +53,8 @@ fun ResultScreen(
     val candidate = result?.selectedCandidate
     val latLon = result?.selectedLatLon
     val url = latLon?.let(::buildGoogleMapsUrl)
+    val recognizedText = result?.recognizedText.orEmpty()
+    var selectedOcrText by remember(recognizedText) { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -60,26 +70,23 @@ fun ResultScreen(
             fontWeight = FontWeight.Bold
         )
 
-        val recognizedText = result?.recognizedText.orEmpty()
         OcrTextCard(
             strings = strings,
             text = recognizedText,
-            onCopyRecognizedText = onCopyRecognizedText,
-            onReparseRecognizedText = onReparseRecognizedText
+            selectedText = selectedOcrText,
+            onSelectedTextChange = { selectedOcrText = it },
+            onLineClicked = { line ->
+                selectedOcrText = line
+                onCopyOcrLine(line)
+                onParseSelectedText(line)
+            },
+            onCopySelectedText = { text -> onCopySelectedText(text) },
+            onParseSelectedText = { text -> onParseSelectedText(text) },
+            onCopyAllText = { text -> onCopyAllText(text) }
         )
 
         errorMessage?.let { message ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.10f))
-            ) {
-                Text(
-                    text = message,
-                    modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
+            ErrorCard(message = message)
         }
 
         if (result != null && result.candidates.size > 1) {
@@ -92,7 +99,13 @@ fun ResultScreen(
 
         if (candidate != null && latLon != null && url != null) {
             LatLonCard(strings = strings, latitude = latLon.latitude, longitude = latLon.longitude)
-            UtmDetailsCard(strings = strings, rawText = candidate.rawText, easting = candidate.easting.toLong(), fullNorthing = candidate.fullNorthing.toLong(), zoneText = "${candidate.zone}${candidate.hemisphere.name.first()}")
+            UtmDetailsCard(
+                strings = strings,
+                rawText = candidate.rawText,
+                easting = candidate.easting.toLong(),
+                fullNorthing = candidate.fullNorthing.toLong(),
+                zoneText = "${candidate.zone}${candidate.hemisphere.name.first()}"
+            )
             MapsLinkCard(strings = strings, url = url)
 
             Button(onClick = { onOpenMaps(url) }, modifier = Modifier.fillMaxWidth()) {
@@ -126,41 +139,113 @@ fun ResultScreen(
 private fun OcrTextCard(
     strings: UiStrings,
     text: String,
-    onCopyRecognizedText: (String) -> Unit,
-    onReparseRecognizedText: (String) -> Unit
+    selectedText: String,
+    onSelectedTextChange: (String) -> Unit,
+    onLineClicked: (String) -> Unit,
+    onCopySelectedText: (String) -> Unit,
+    onParseSelectedText: (String) -> Unit,
+    onCopyAllText: (String) -> Unit
 ) {
+    val lines = remember(text) { text.lines().map(String::trim).filter(String::isNotBlank) }
+    LaunchedEffect(lines) {
+        if (selectedText.isBlank() && lines.isNotEmpty()) {
+            onSelectedTextChange(lines.first())
+        }
+    }
+
     Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                text = strings.ocrText,
+                text = strings.recognizedTextFromImage,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold
             )
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 180.dp)
-                    .verticalScroll(rememberScrollState())
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(12.dp)
-            ) {
-                Text(text.ifBlank { "—" }, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = strings.tapLineToCopyAndExtract,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            if (lines.isEmpty()) {
+                Text(
+                    text = strings.noTextRecognized,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 220.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    lines.forEach { line ->
+                        OcrLineCard(line = line, onClick = { onLineClicked(line) })
+                    }
+                }
             }
-            OutlinedButton(
-                onClick = { onCopyRecognizedText(text) },
+
+            OutlinedTextField(
+                value = selectedText,
+                onValueChange = onSelectedTextChange,
                 modifier = Modifier.fillMaxWidth(),
-                enabled = text.isNotBlank()
+                minLines = 2,
+                label = { Text(strings.selectedTextForExtraction) }
+            )
+            OutlinedButton(
+                onClick = { onCopySelectedText(selectedText) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = selectedText.isNotBlank()
             ) {
-                Text(strings.copyRecognizedText)
+                Text(strings.copySelectedText)
             }
             Button(
-                onClick = { onReparseRecognizedText(text) },
+                onClick = { onParseSelectedText(selectedText) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = selectedText.isNotBlank()
+            ) {
+                Text(strings.extractCoordinateFromSelectedText)
+            }
+            OutlinedButton(
+                onClick = { onCopyAllText(text) },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = text.isNotBlank()
             ) {
-                Text(strings.extractCoordinateFromThisText)
+                Text(strings.copyAllText)
             }
         }
+    }
+}
+
+@Composable
+private fun OcrLineCard(line: String, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Text(
+            text = line,
+            modifier = Modifier.padding(12.dp),
+            style = MaterialTheme.typography.bodyLarge
+        )
+    }
+}
+
+@Composable
+private fun ErrorCard(message: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.10f))
+    ) {
+        Text(
+            text = message,
+            modifier = Modifier.padding(16.dp),
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyLarge
+        )
     }
 }
 

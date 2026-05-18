@@ -52,7 +52,7 @@ fun SplashScreen(strings: UiStrings) {
             textAlign = TextAlign.Center
         )
         Text(
-            strings.creatorName,
+            strings.createdByEmail,
             modifier = Modifier.padding(top = 6.dp),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
