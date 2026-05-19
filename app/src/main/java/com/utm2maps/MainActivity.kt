@@ -190,6 +190,10 @@ private fun Utm2MapsApp() {
             resultErrorMessage = null
             runCatching { ocrService.recognize(uri) }
                 .onSuccess { text ->
+                    if (text.isBlank()) {
+                        errorMessage = strings.noRecognizedText
+                        return@onSuccess
+                    }
                     val candidates = UtmParser.parseCandidates(
                         text = text,
                         zone = settings.zoneNumber,
@@ -197,7 +201,9 @@ private fun Utm2MapsApp() {
                         northingPrefix = settings.northingPrefix
                     )
                     if (candidates.isEmpty()) {
-                        errorMessage = strings.noValidCoordinateFound
+                        resultErrorMessage = strings.noValidCoordinateInImage
+                        scanResult = ScanResult(recognizedText = text, candidates = candidates)
+                        screen = Screen.RESULT
                     } else {
                         scanResult = ScanResult(recognizedText = text, candidates = candidates)
                         resultErrorMessage = null

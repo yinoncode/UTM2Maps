@@ -7,134 +7,89 @@ object UtmParser {
     private val fullUtmRegex = Regex(
         pattern = """(?<!\d)([1-5]?\d|60)\s*([C-HJ-NP-Xc-hj-np-x])\s*(\d{6,7})\s*[/\\|:,\-\s]+\s*(\d{7})(?!\d)"""
     )
+    private val fullDecimalPairRegex = Regex(
+        pattern = """(?<!\d)(\d{6}(?:\.\d+)?)\s*[/\\|:,\-\s]+\s*(\d{7}(?:\.\d+)?)(?!\d)"""
+    )
+    private val labeledDecimalPairRegex = Regex(
+        pattern = """(?i)\bE\s*[:=]?\s*(\d{6}(?:\.\d+)?)\s*[,;/\\|:\-\s]*\bN\s*[:=]?\s*(\d{7}(?:\.\d+)?)\b"""
+    )
     private val separatedPairRegex = Regex("""(?<!\d)(\d{6})\s*[/\\|:,\-\s]+\s*(\d{6})(?!\d)""")
     private val compactPairRegex = Regex("""(?<!\d)(\d{12})(?!\d)""")
 
-    fun parseCandidates(
-        text: String,
-        zone: Int,
-        hemisphere: Hemisphere,
-        northingPrefix: String
-    ): List<UtmCandidate> {
+    fun parseCandidates(text: String, zone: Int, hemisphere: Hemisphere, northingPrefix: String): List<UtmCandidate> {
         val cleanPrefix = northingPrefix.filter(Char::isDigit)
         if (cleanPrefix.isEmpty()) return emptyList()
 
         val matches = buildList {
-            fullUtmRegex.findAll(text).forEach { match ->
-                add(
-                    RawMatch.FullUtm(
-                        rawText = match.value.trim(),
-                        zone = match.groupValues[1].toInt(),
-                        latitudeBand = match.groupValues[2].uppercase(),
-                        eastingText = match.groupValues[3],
-                        northingText = match.groupValues[4],
-                        position = match.range.first
-                    )
-                )
+            fullUtmRegex.findAll(text).forEach { m ->
+                add(RawMatch.FullUtm(m.value.trim(), m.groupValues[1].toInt(), m.groupValues[2].uppercase(), m.groupValues[3], m.groupValues[4], m.range.first))
             }
-            separatedPairRegex.findAll(text).forEach { match ->
-                add(
-                    RawMatch.ShortUtm(
-                        rawText = match.value.trim(),
-                        eastingText = match.groupValues[1],
-                        shortNorthing = match.groupValues[2],
-                        position = match.range.first
-                    )
-                )
+            labeledDecimalPairRegex.findAll(text).forEach { m ->
+                add(RawMatch.FullNumeric(m.value.trim(), m.groupValues[1], m.groupValues[2], m.range.first))
             }
-            compactPairRegex.findAll(text).forEach { match ->
-                val digits = match.groupValues[1]
-                add(
-                    RawMatch.ShortUtm(
-                        rawText = match.value.trim(),
-                        eastingText = digits.take(6),
-                        shortNorthing = digits.takeLast(6),
-                        position = match.range.first
-                    )
-                )
+            fullDecimalPairRegex.findAll(text).forEach { m ->
+                add(RawMatch.FullNumeric(m.value.trim(), m.groupValues[1], m.groupValues[2], m.range.first))
+            }
+            separatedPairRegex.findAll(text).forEach { m ->
+                add(RawMatch.ShortUtm(m.value.trim(), m.groupValues[1], m.groupValues[2], m.range.first))
+            }
+            compactPairRegex.findAll(text).forEach { m ->
+                val digits = m.groupValues[1]
+                add(RawMatch.ShortUtm(m.value.trim(), digits.take(6), digits.takeLast(6), m.range.first))
             }
         }
 
-        return matches
-            .sortedBy { it.position }
+        return matches.sortedBy { it.position }
             .distinctBy {
                 when (it) {
                     is RawMatch.FullUtm -> "F:${it.zone}:${it.latitudeBand}:${it.eastingText}:${it.northingText}"
+                    is RawMatch.FullNumeric -> "N:${it.eastingText}:${it.fullNorthingText}"
                     is RawMatch.ShortUtm -> "S:${it.eastingText}:${it.shortNorthing}"
                 }
             }
-            .mapNotNull { raw ->
-                when (raw) {
-                    is RawMatch.FullUtm -> raw.toFullCandidate()
-                    is RawMatch.ShortUtm -> raw.toShortCandidate(zone, hemisphere, cleanPrefix)
+            .mapNotNull {
+                when (it) {
+                    is RawMatch.FullUtm -> it.toFullCandidate()
+                    is RawMatch.FullNumeric -> it.toFullNumericCandidate(zone, hemisphere)
+                    is RawMatch.ShortUtm -> it.toShortCandidate(zone, hemisphere, cleanPrefix)
                 }
             }
     }
 
-    fun buildFullNorthing(shortNorthing: String, northingPrefix: String): String =
-        northingPrefix.filter(Char::isDigit) + shortNorthing
+    fun buildFullNorthing(shortNorthing: String, northingPrefix: String): String = northingPrefix.filter(Char::isDigit) + shortNorthing
 
-    private fun RawMatch.ShortUtm.toShortCandidate(
-        zone: Int,
-        hemisphere: Hemisphere,
-        northingPrefix: String
-    ): UtmCandidate? {
+    private fun RawMatch.ShortUtm.toShortCandidate(zone: Int, hemisphere: Hemisphere, northingPrefix: String): UtmCandidate? {
         val easting = eastingText.toDoubleOrNull() ?: return null
-        if (easting !in 100_000.0..900_000.0) return null
-        if (!shortNorthing.matches(Regex("""\d{6}"""))) return null
-
-        val fullNorthingText = buildFullNorthing(shortNorthing, northingPrefix)
-        val fullNorthing = fullNorthingText.toDoubleOrNull() ?: return null
+        if (easting !in 100_000.0..900_000.0 || !shortNorthing.matches(Regex("""\d{6}""")) || zone !in 1..60) return null
+        val fullNorthing = buildFullNorthing(shortNorthing, northingPrefix).toDoubleOrNull() ?: return null
         if (fullNorthing !in 0.0..10_000_000.0) return null
-        if (zone !in 1..60) return null
+        return UtmCandidate(rawText, easting, shortNorthing, fullNorthing, zone, hemisphere)
+    }
 
-        return UtmCandidate(
-            rawText = rawText,
-            easting = easting,
-            shortNorthing = shortNorthing,
-            fullNorthing = fullNorthing,
-            zone = zone,
-            hemisphere = hemisphere
-        )
+    private fun RawMatch.FullNumeric.toFullNumericCandidate(zone: Int, hemisphere: Hemisphere): UtmCandidate? {
+        val easting = eastingText.toDoubleOrNull() ?: return null
+        val fullNorthing = fullNorthingText.toDoubleOrNull() ?: return null
+        if (zone !in 1..60 || easting !in 100_000.0..900_000.0 || fullNorthing !in 0.0..10_000_000.0) return null
+        return UtmCandidate(rawText, easting, fullNorthingText.takeLast(6).filter { it.isDigit() }, fullNorthing, zone, hemisphere)
     }
 
     private fun RawMatch.FullUtm.toFullCandidate(): UtmCandidate? {
         val easting = eastingText.toDoubleOrNull() ?: return null
         val fullNorthing = northingText.toDoubleOrNull() ?: return null
-        if (zone !in 1..60) return null
-        if (easting !in 100_000.0..900_000.0) return null
-        if (fullNorthing !in 0.0..10_000_000.0) return null
-
-        val hemisphere = latitudeBandToHemisphere(latitudeBand) ?: return null
-
-        return UtmCandidate(
-            rawText = rawText,
-            easting = easting,
-            shortNorthing = northingText.takeLast(6),
-            fullNorthing = fullNorthing,
-            zone = zone,
-            hemisphere = hemisphere,
-            latitudeBand = latitudeBand
-        )
+        if (zone !in 1..60 || easting !in 100_000.0..900_000.0 || fullNorthing !in 0.0..10_000_000.0) return null
+        val inferredHemisphere = latitudeBandToHemisphere(latitudeBand) ?: return null
+        return UtmCandidate(rawText, easting, northingText.takeLast(6), fullNorthing, zone, inferredHemisphere, latitudeBand)
     }
 
-    private fun latitudeBandToHemisphere(band: String): Hemisphere? {
-        val c = band.uppercase().firstOrNull() ?: return null
-        return when (c) {
-            in 'N'..'X' -> Hemisphere.NORTH
-            in 'C'..'M' -> Hemisphere.SOUTH
-            else -> null
-        }
+    private fun latitudeBandToHemisphere(band: String): Hemisphere? = when (band.uppercase().firstOrNull()) {
+        in 'N'..'X' -> Hemisphere.NORTH
+        in 'C'..'M' -> Hemisphere.SOUTH
+        else -> null
     }
 
     private sealed interface RawMatch { val position: Int
-        data class ShortUtm(
-            val rawText: String,
-            val eastingText: String,
-            val shortNorthing: String,
-            override val position: Int
-        ) : RawMatch
-
+        data class ShortUtm(val rawText: String, val eastingText: String, val shortNorthing: String, override val position: Int) : RawMatch
+        data class FullNumeric(val rawText: String, val eastingText: String, val fullNorthingText: String, override val position: Int) : RawMatch
         data class FullUtm(
             val rawText: String,
             val zone: Int,

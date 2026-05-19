@@ -101,6 +101,30 @@ class UtmParserTest {
     }
 
     @Test
+    fun parsesFullDecimalPair() {
+        val candidates = UtmParser.parseCandidates("691296.452 3609272.95", 36, Hemisphere.NORTH, "3")
+        assertEquals(1, candidates.size)
+        assertEquals(691296.452, candidates[0].easting)
+        assertEquals(3_609_272.95, candidates[0].fullNorthing)
+    }
+
+    @Test
+    fun parsesLabeledDecimalPairWithSpaces() {
+        val candidates = UtmParser.parseCandidates("E 691296.452 N 3609272.95", 36, Hemisphere.NORTH, "3")
+        assertEquals(1, candidates.size)
+        assertEquals(691296.452, candidates[0].easting)
+        assertEquals(3_609_272.95, candidates[0].fullNorthing)
+    }
+
+    @Test
+    fun parsesLabeledDecimalPairWithEquals() {
+        val candidates = UtmParser.parseCandidates("E=691296.452 N=3609272.95", 36, Hemisphere.NORTH, "3")
+        assertEquals(1, candidates.size)
+        assertEquals(691296.452, candidates[0].easting)
+        assertEquals(3_609_272.95, candidates[0].fullNorthing)
+    }
+
+    @Test
     fun buildsFullNorthingByConcatenatingPrefix() {
         assertEquals("3431750", UtmParser.buildFullNorthing("431750", "3"))
     }

@@ -120,7 +120,7 @@ fun ResultScreen(
             HorizontalDivider()
         } else {
             Text(
-                text = strings.noValidCoordinateFound,
+                text = if (recognizedText.isNotBlank()) strings.recognizedTextAvailableNoCoordinate else strings.noValidCoordinateInImage,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyLarge
             )
