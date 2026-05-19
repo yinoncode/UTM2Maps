@@ -104,7 +104,7 @@ fun ResultScreen(
                 rawText = candidate.rawText,
                 easting = candidate.easting.toLong(),
                 fullNorthing = candidate.fullNorthing.toLong(),
-                zoneText = "${candidate.zone}${candidate.hemisphere.name.first()}"
+                zoneText = candidate.latitudeBand?.let { "${candidate.zone}$it" } ?: "${candidate.zone}${candidate.hemisphere.name.first()}"
             )
             MapsLinkCard(strings = strings, url = url)
 

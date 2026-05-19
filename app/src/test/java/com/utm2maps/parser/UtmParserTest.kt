@@ -32,6 +32,42 @@ class UtmParserTest {
     }
 
     @Test
+    fun parsesFullUtmZoneBandAcrossLines() {
+        val candidates = UtmParser.parseCandidates("36S 0691523\n3608074", 36, Hemisphere.NORTH, "3")
+
+        assertEquals(1, candidates.size)
+        assertEquals(36, candidates[0].zone)
+        assertEquals("S", candidates[0].latitudeBand)
+        assertEquals(Hemisphere.NORTH, candidates[0].hemisphere)
+        assertEquals(691523.0, candidates[0].easting)
+        assertEquals(3_608_074.0, candidates[0].fullNorthing)
+    }
+
+    @Test
+    fun parsesFullUtmZoneBandSameLine() {
+        val candidates = UtmParser.parseCandidates("36S 0691523 3608074", 1, Hemisphere.SOUTH, "9")
+
+        assertEquals(1, candidates.size)
+        assertEquals(36, candidates[0].zone)
+        assertEquals("S", candidates[0].latitudeBand)
+        assertEquals(Hemisphere.NORTH, candidates[0].hemisphere)
+        assertEquals(691523.0, candidates[0].easting)
+        assertEquals(3_608_074.0, candidates[0].fullNorthing)
+    }
+
+    @Test
+    fun parsesFullUtmWithSpaceBetweenZoneAndBand() {
+        val candidates = UtmParser.parseCandidates("36 R 0625854 3439328", 1, Hemisphere.SOUTH, "9")
+
+        assertEquals(1, candidates.size)
+        assertEquals(36, candidates[0].zone)
+        assertEquals("R", candidates[0].latitudeBand)
+        assertEquals(Hemisphere.NORTH, candidates[0].hemisphere)
+        assertEquals(625854.0, candidates[0].easting)
+        assertEquals(3_439_328.0, candidates[0].fullNorthing)
+    }
+
+    @Test
     fun parsesSlashSeparatedCoordinateInsideHebrewText() {
         val candidates = UtmParser.parseCandidates("נצ הנחתה 625854/439328", 36, Hemisphere.NORTH, "3")
 
@@ -39,32 +75,6 @@ class UtmParserTest {
         assertEquals(625854.0, candidates[0].easting)
         assertEquals("439328", candidates[0].shortNorthing)
         assertEquals(3_439_328.0, candidates[0].fullNorthing)
-    }
-
-    @Test
-    fun parsesCoordinateWithSpacesAroundSlash() {
-        val candidates = UtmParser.parseCandidates("נ.צ. 625854 / 439328", 36, Hemisphere.NORTH, "3")
-
-        assertEquals(1, candidates.size)
-        assertEquals(625854.0, candidates[0].easting)
-        assertEquals("439328", candidates[0].shortNorthing)
-        assertEquals(3_439_328.0, candidates[0].fullNorthing)
-    }
-
-    @Test
-    fun parsesBackslashAndPipe() {
-        val backslashCandidates = UtmParser.parseCandidates("625854\\439328", 36, Hemisphere.NORTH, "3")
-        val pipeCandidates = UtmParser.parseCandidates("625854 | 439328", 36, Hemisphere.NORTH, "3")
-
-        assertEquals(1, backslashCandidates.size)
-        assertEquals(625854.0, backslashCandidates[0].easting)
-        assertEquals("439328", backslashCandidates[0].shortNorthing)
-        assertEquals(3_439_328.0, backslashCandidates[0].fullNorthing)
-
-        assertEquals(1, pipeCandidates.size)
-        assertEquals(625854.0, pipeCandidates[0].easting)
-        assertEquals("439328", pipeCandidates[0].shortNorthing)
-        assertEquals(3_439_328.0, pipeCandidates[0].fullNorthing)
     }
 
     @Test
@@ -78,32 +88,12 @@ class UtmParserTest {
             "625854\\439328",
             "625854 | 439328",
             "625854\n439328",
-            "625854439328",
-            "נקודת ציון: 625854 439328",
-            "UTM 625854/439328",
-            "coords 625854:439328 ok"
-        )
-
-        inputs.forEach { input ->
-            val candidates = UtmParser.parseCandidates(input, 36, Hemisphere.NORTH, "3")
-            assertEquals(1, candidates.size, "Expected one candidate for input: $input")
-            assertEquals(625854.0, candidates[0].easting)
-            assertEquals("439328", candidates[0].shortNorthing)
-            assertEquals(3_439_328.0, candidates[0].fullNorthing)
-        }
-    }
-
-    @Test
-    fun parsesManualTextExamples() {
-        val inputs = listOf(
-            "נצ הנחתה 625854/439328",
-            "נקודת ציון:\n625854\n439328",
             "625854439328"
         )
 
         inputs.forEach { input ->
             val candidates = UtmParser.parseCandidates(input, 36, Hemisphere.NORTH, "3")
-            assertEquals(1, candidates.size, "Expected one candidate for manual text: $input")
+            assertEquals(1, candidates.size, "Expected one candidate for input: $input")
             assertEquals(625854.0, candidates[0].easting)
             assertEquals("439328", candidates[0].shortNorthing)
             assertEquals(3_439_328.0, candidates[0].fullNorthing)

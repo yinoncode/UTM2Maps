@@ -6,7 +6,8 @@ data class UtmCandidate(
     val shortNorthing: String,
     val fullNorthing: Double,
     val zone: Int,
-    val hemisphere: Hemisphere
+    val hemisphere: Hemisphere,
+    val latitudeBand: String? = null
 )
 
 data class LatLon(
