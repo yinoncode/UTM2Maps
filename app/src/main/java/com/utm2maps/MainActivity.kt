@@ -337,8 +337,7 @@ private fun Utm2MapsApp() {
                             onCopyLink = ::copyLink,
                             onShareLink = { url -> shareLink(context, url, strings.shareChooserTitle) },
                             onScanAnother = { screen = Screen.MAIN },
-                            onBack = { screen = Screen.MAIN },
-                            onSaveToHistory = ::saveToHistory
+                            onBack = { screen = Screen.MAIN }
                         )
 
                         Screen.SETTINGS -> SettingsScreen(
@@ -348,8 +347,7 @@ private fun Utm2MapsApp() {
                                 scope.launch { repository.save(newSettings) }
                                 screen = Screen.MAIN
                             },
-                            onBack = { screen = Screen.MAIN },
-                            onSaveToHistory = ::saveToHistory
+                            onBack = { screen = Screen.MAIN }
                         )
                     }
                 }
