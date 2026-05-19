@@ -46,6 +46,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.utm2maps.R
 import com.utm2maps.ScanResult
 import com.utm2maps.data.CoordinateHistoryItem
 
@@ -101,8 +104,8 @@ private fun HeroCard(strings: UiStrings) = ElevatedCard(
     colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
 ) {
     Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.size(62.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) {
-            Text("UTM", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+        Box(Modifier.size(90.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface), contentAlignment = Alignment.Center) {
+            Image(painter = painterResource(id = R.drawable.utm2maps_logo), contentDescription = strings.appName, modifier = Modifier.size(78.dp))
         }
         Text(strings.appName, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Text(strings.appTagline, textAlign = TextAlign.Center)
