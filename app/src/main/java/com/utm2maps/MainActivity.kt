@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.utm2maps.data.AppSettings
+import com.utm2maps.data.CoordinateHistoryItem
+import com.utm2maps.data.HistoryRepository
 import com.utm2maps.data.InterfaceLanguage
 import com.utm2maps.data.SettingsRepository
 import com.utm2maps.geo.LatLon
@@ -85,7 +87,9 @@ private fun Utm2MapsApp() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repository = remember { SettingsRepository(context) }
+    val historyRepository = remember { HistoryRepository(context) }
     val settings by repository.settings.collectAsState(initial = AppSettings())
+    val history by historyRepository.history.collectAsState(initial = emptyList())
     val strings = stringsFor(settings.interfaceLanguage)
     val layoutDirection = when (settings.interfaceLanguage) {
         InterfaceLanguage.HEBREW -> LayoutDirection.Rtl
@@ -183,6 +187,47 @@ private fun Utm2MapsApp() {
         }
     }
 
+
+    fun makeHistoryId(item: UtmCandidate): String = "${item.zone}:${item.hemisphere}:${"%.3f".format(item.easting)}:${"%.3f".format(item.fullNorthing)}"
+
+    fun saveToHistory(title: String, candidate: UtmCandidate, latLon: LatLon) {
+        val safeTitle = title.ifBlank { strings.newCoordinate }
+        val item = CoordinateHistoryItem(
+            id = makeHistoryId(candidate),
+            title = safeTitle,
+            rawText = candidate.rawText,
+            easting = candidate.easting,
+            shortNorthing = candidate.shortNorthing,
+            fullNorthing = candidate.fullNorthing,
+            zone = candidate.zone,
+            hemisphere = candidate.hemisphere,
+            latitude = latLon.latitude,
+            longitude = latLon.longitude,
+            googleMapsUrl = buildGoogleMapsUrl(latLon),
+            createdAt = System.currentTimeMillis()
+        )
+        scope.launch { historyRepository.save(item) }
+        Toast.makeText(context, strings.historySaved, Toast.LENGTH_SHORT).show()
+    }
+
+    fun openHistoryItem(item: CoordinateHistoryItem) {
+        scanResult = ScanResult(
+            recognizedText = item.rawText,
+            candidates = listOf(
+                UtmCandidate(
+                    rawText = item.rawText,
+                    easting = item.easting,
+                    shortNorthing = item.shortNorthing,
+                    fullNorthing = item.fullNorthing,
+                    zone = item.zone,
+                    hemisphere = item.hemisphere
+                )
+            )
+        )
+        resultErrorMessage = null
+        screen = Screen.RESULT
+    }
+
     fun scanImage(uri: Uri) {
         scope.launch {
             isScanning = true
@@ -269,7 +314,14 @@ private fun Utm2MapsApp() {
                                 }
                             },
                             onOpenSettings = { screen = Screen.SETTINGS },
-                            onOpenLastResult = { if (scanResult != null) screen = Screen.RESULT }
+                            onOpenLastResult = { if (scanResult != null) screen = Screen.RESULT },
+                            history = history,
+                            onOpenHistoryItem = ::openHistoryItem,
+                            onDeleteHistoryItem = { item -> scope.launch { historyRepository.delete(item.id) }; Toast.makeText(context, strings.historyDeleted, Toast.LENGTH_SHORT).show() },
+                            onUpdateHistoryTitle = { item, title -> scope.launch { historyRepository.updateTitle(item.id, title) }; Toast.makeText(context, strings.titleUpdated, Toast.LENGTH_SHORT).show() },
+                            onCopyHistoryLink = { item -> copyLink(item.googleMapsUrl) },
+                            onShareHistoryLink = { item -> shareLink(context, item.googleMapsUrl, strings.shareChooserTitle) },
+                            onOpenHistoryInMaps = { item -> openMaps(item.googleMapsUrl) }
                         )
 
                         Screen.RESULT -> ResultScreen(
@@ -285,7 +337,8 @@ private fun Utm2MapsApp() {
                             onCopyLink = ::copyLink,
                             onShareLink = { url -> shareLink(context, url, strings.shareChooserTitle) },
                             onScanAnother = { screen = Screen.MAIN },
-                            onBack = { screen = Screen.MAIN }
+                            onBack = { screen = Screen.MAIN },
+                            onSaveToHistory = ::saveToHistory
                         )
 
                         Screen.SETTINGS -> SettingsScreen(
@@ -295,7 +348,8 @@ private fun Utm2MapsApp() {
                                 scope.launch { repository.save(newSettings) }
                                 screen = Screen.MAIN
                             },
-                            onBack = { screen = Screen.MAIN }
+                            onBack = { screen = Screen.MAIN },
+                            onSaveToHistory = ::saveToHistory
                         )
                     }
                 }

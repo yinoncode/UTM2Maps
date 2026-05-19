@@ -74,7 +74,19 @@ data class UiStrings(
     val createdByEmail: String,
     val createdByFull: String,
     val cameraPermissionDenied: String,
-    val ocrFailed: String
+    val ocrFailed: String,
+    val lastFiveCoordinates: String,
+    val noHistoryYet: String,
+    val saveToHistory: String,
+    val coordinateTitle: String,
+    val newCoordinate: String,
+    val historySaved: String,
+    val historyDeleted: String,
+    val titleUpdated: String,
+    val openInMaps: String,
+    val copy: String,
+    val share: String,
+    val delete: String,
 )
 
 fun stringsFor(language: InterfaceLanguage): UiStrings = when (language) {
@@ -154,7 +166,19 @@ private val hebrewStrings = UiStrings(
     createdByEmail = "yinoncode@gmail.com",
     createdByFull = "Created by yinoncode@gmail.com",
     cameraPermissionDenied = "הרשאת מצלמה נדחתה",
-    ocrFailed = "זיהוי הטקסט נכשל"
+    ocrFailed = "זיהוי הטקסט נכשל",
+    lastFiveCoordinates = "5 הנ״צים האחרונים",
+    noHistoryYet = "עדיין אין היסטוריה",
+    saveToHistory = "שמור להיסטוריה",
+    coordinateTitle = "כותרת לנ״צ",
+    newCoordinate = "נ״צ חדש",
+    historySaved = "הנ״צ נשמר בהיסטוריה",
+    historyDeleted = "הנ״צ נמחק מההיסטוריה",
+    titleUpdated = "הכותרת עודכנה",
+    openInMaps = "פתח במפות",
+    copy = "העתק",
+    share = "שתף",
+    delete = "מחק",
 )
 
 private val englishStrings = UiStrings(
@@ -229,5 +253,17 @@ private val englishStrings = UiStrings(
     createdByEmail = "yinoncode@gmail.com",
     createdByFull = "Created by yinoncode@gmail.com",
     cameraPermissionDenied = "Camera permission denied",
-    ocrFailed = "OCR failed"
+    ocrFailed = "OCR failed",
+    lastFiveCoordinates = "Last 5 coordinates",
+    noHistoryYet = "No history yet",
+    saveToHistory = "Save to history",
+    coordinateTitle = "Coordinate title",
+    newCoordinate = "New coordinate",
+    historySaved = "Coordinate saved to history",
+    historyDeleted = "Coordinate deleted from history",
+    titleUpdated = "Title updated",
+    openInMaps = "Open in maps",
+    copy = "Copy",
+    share = "Share",
+    delete = "Delete",
 )

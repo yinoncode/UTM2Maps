@@ -48,13 +48,15 @@ fun ResultScreen(
     onCopyLink: (String) -> Unit,
     onShareLink: (String) -> Unit,
     onScanAnother: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onSaveToHistory: (String, com.utm2maps.geo.UtmCandidate, com.utm2maps.geo.LatLon) -> Unit
 ) {
     val candidate = result?.selectedCandidate
     val latLon = result?.selectedLatLon
     val url = latLon?.let(::buildGoogleMapsUrl)
     val recognizedText = result?.recognizedText.orEmpty()
     var selectedOcrText by remember(recognizedText) { mutableStateOf("") }
+    var coordinateTitle by remember(candidate?.rawText) { mutableStateOf(strings.newCoordinate) }
 
     Column(
         modifier = Modifier
@@ -113,6 +115,15 @@ fun ResultScreen(
             }
             OutlinedButton(onClick = { onCopyLink(url) }, modifier = Modifier.fillMaxWidth()) {
                 Text(strings.copyLink)
+            }
+            OutlinedTextField(
+                value = coordinateTitle,
+                onValueChange = { coordinateTitle = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(strings.coordinateTitle) }
+            )
+            Button(onClick = { onSaveToHistory(coordinateTitle, candidate, latLon) }, modifier = Modifier.fillMaxWidth()) {
+                Text(strings.saveToHistory)
             }
             OutlinedButton(onClick = { onShareLink(url) }, modifier = Modifier.fillMaxWidth()) {
                 Text(strings.shareLink)
