@@ -337,7 +337,8 @@ private fun Utm2MapsApp() {
                             onCopyLink = ::copyLink,
                             onShareLink = { url -> shareLink(context, url, strings.shareChooserTitle) },
                             onScanAnother = { screen = Screen.MAIN },
-                            onBack = { screen = Screen.MAIN }
+                            onBack = { screen = Screen.MAIN },
+                            onSaveToHistory = ::saveToHistory
                         )
 
                         Screen.SETTINGS -> SettingsScreen(
