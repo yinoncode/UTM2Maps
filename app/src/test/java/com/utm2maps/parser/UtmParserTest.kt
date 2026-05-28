@@ -124,6 +124,47 @@ class UtmParserTest {
         assertEquals(3_609_272.95, candidates[0].fullNorthing)
     }
 
+
+    @Test
+    fun parsesAdjacentSixDigitLinesFromScreenshot() {
+        val candidates = UtmParser.parseCandidates("627144\n437671", 36, Hemisphere.NORTH, "3")
+
+        assertEquals(1, candidates.size)
+        assertEquals(627144.0, candidates[0].easting)
+        assertEquals("437671", candidates[0].shortNorthing)
+        assertEquals(3_437_671.0, candidates[0].fullNorthing)
+    }
+
+    @Test
+    fun parsesAdjacentSixDigitLinesInsideWhatsAppText() {
+        val candidates = UtmParser.parseCandidates("some WhatsApp text\n627144\n437671\nmore text", 36, Hemisphere.NORTH, "3")
+
+        assertEquals(1, candidates.size)
+        assertEquals(627144.0, candidates[0].easting)
+        assertEquals("437671", candidates[0].shortNorthing)
+        assertEquals(3_437_671.0, candidates[0].fullNorthing)
+    }
+
+    @Test
+    fun parsesAdjacentLinesWithOcrSpacesInsideNumbers() {
+        val candidates = UtmParser.parseCandidates("627 144\n437 671", 36, Hemisphere.NORTH, "3")
+
+        assertEquals(1, candidates.size)
+        assertEquals(627144.0, candidates[0].easting)
+        assertEquals("437671", candidates[0].shortNorthing)
+        assertEquals(3_437_671.0, candidates[0].fullNorthing)
+    }
+
+    @Test
+    fun parsesAdjacentLinesWithDifferentOcrSplitsInsideNumbers() {
+        val candidates = UtmParser.parseCandidates("6271 44\n4376 71", 36, Hemisphere.NORTH, "3")
+
+        assertEquals(1, candidates.size)
+        assertEquals(627144.0, candidates[0].easting)
+        assertEquals("437671", candidates[0].shortNorthing)
+        assertEquals(3_437_671.0, candidates[0].fullNorthing)
+    }
+
     @Test
     fun buildsFullNorthingByConcatenatingPrefix() {
         assertEquals("3431750", UtmParser.buildFullNorthing("431750", "3"))

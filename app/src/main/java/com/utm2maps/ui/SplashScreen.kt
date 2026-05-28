@@ -10,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
 import com.utm2maps.R
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,6 +32,7 @@ fun SplashScreen(strings: UiStrings) {
         Image(
             painter = painterResource(id = R.drawable.utm2maps_logo),
             contentDescription = strings.appName,
+            contentScale = ContentScale.Fit,
             modifier = Modifier.size(120.dp)
         )
         Text(

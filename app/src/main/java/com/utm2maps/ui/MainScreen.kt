@@ -1,5 +1,6 @@
 package com.utm2maps.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,9 +34,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.utm2maps.R
 import com.utm2maps.ScanResult
 import com.utm2maps.data.CoordinateHistoryItem
 
@@ -91,11 +95,12 @@ private fun HeroCard(strings: UiStrings) = ElevatedCard(
     colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
 ) {
     Row(Modifier.padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
-        Row(
-            modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) { Text("UTM", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold) }
+        Image(
+            painter = painterResource(id = R.drawable.utm2maps_logo),
+            contentDescription = strings.appName,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.size(56.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface)
+        )
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(strings.appName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(strings.appTagline, style = MaterialTheme.typography.bodyMedium)

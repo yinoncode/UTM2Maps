@@ -30,6 +30,7 @@ object UtmParser {
             fullDecimalPairRegex.findAll(text).forEach { m ->
                 add(RawMatch.FullNumeric(m.value.trim(), m.groupValues[1], m.groupValues[2], m.range.first))
             }
+            adjacentSixDigitLinePairs(text).forEach { raw -> add(raw) }
             separatedPairRegex.findAll(text).forEach { m ->
                 add(RawMatch.ShortUtm(m.value.trim(), m.groupValues[1], m.groupValues[2], m.range.first))
             }
@@ -53,6 +54,29 @@ object UtmParser {
                     is RawMatch.FullNumeric -> it.toFullNumericCandidate(zone, hemisphere)
                     is RawMatch.ShortUtm -> it.toShortCandidate(zone, hemisphere, cleanPrefix)
                 }
+            }
+    }
+
+
+    private fun adjacentSixDigitLinePairs(text: String): List<RawMatch.ShortUtm> {
+        val lines = buildList {
+            var start = 0
+            text.splitToSequence('\n').forEach { line ->
+                val digitsOnly = line.filter(Char::isDigit)
+                add(OcrLine(line.trim(), digitsOnly, start))
+                start += line.length + 1
+            }
+        }
+
+        return lines.zipWithNext()
+            .filter { (first, second) -> first.digitsOnly.length == 6 && second.digitsOnly.length == 6 }
+            .map { (first, second) ->
+                RawMatch.ShortUtm(
+                    rawText = listOf(first.rawText, second.rawText).filter(String::isNotBlank).joinToString("\n"),
+                    eastingText = first.digitsOnly,
+                    shortNorthing = second.digitsOnly,
+                    position = first.position
+                )
             }
     }
 
@@ -87,7 +111,10 @@ object UtmParser {
         else -> null
     }
 
-    private sealed interface RawMatch { val position: Int
+    private data class OcrLine(val rawText: String, val digitsOnly: String, val position: Int)
+
+    private sealed interface RawMatch {
+        val position: Int
         data class ShortUtm(val rawText: String, val eastingText: String, val shortNorthing: String, override val position: Int) : RawMatch
         data class FullNumeric(val rawText: String, val eastingText: String, val fullNorthingText: String, override val position: Int) : RawMatch
         data class FullUtm(
